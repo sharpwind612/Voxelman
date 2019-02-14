@@ -1,4 +1,8 @@
-Voxelman
+Voxelman by fengxiaorui
+
+Try to modify it to fit the lastest Entities package
+
+Original project by keijiro: https://github.com/keijiro/Voxelman
 ========
 
 ![gif](https://i.imgur.com/NxsT4AK.gif)
