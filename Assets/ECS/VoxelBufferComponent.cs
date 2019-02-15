@@ -8,7 +8,7 @@ using Unity.Rendering;
 struct VoxelBuffer : ISharedComponentData
 {
     public int MaxVoxelCount;
-    public MeshInstanceRenderer RendererSettings;
+    public RenderMesh RendererSettings;
 }
 
 class VoxelBufferComponent : SharedComponentDataWrapper<VoxelBuffer> {}

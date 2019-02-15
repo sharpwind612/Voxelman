@@ -19,19 +19,21 @@ class VoxelBufferSystem : ComponentSystem
     // Instance counter used for generating voxel IDs
     static uint _counter;
 
-    protected override void OnCreateManager(int capacity)
+    //collect the VoxelBuffer component and create an entity archetype
+    //TODO: OnCreateManager change to 
+    protected override void OnCreateManager()
     {
         _group = GetComponentGroup(typeof(VoxelBuffer));
 
         _voxelArchetype = EntityManager.CreateArchetype(
-            typeof(Voxel), typeof(TransformMatrix), typeof(MeshInstanceRenderer)
+            typeof(Voxel), typeof(Position), typeof(Scale), typeof(RenderMesh)
         );
     }
 
     protected override void OnUpdate()
     {
         // Enumerate all the buffers.
-        EntityManager.GetAllUniqueSharedComponentDatas(_uniques);
+        EntityManager.GetAllUniqueSharedComponentData<VoxelBuffer>(_uniques);
         for (var i = 0; i < _uniques.Count; i++)
         {
             _group.SetFilter(_uniques[i]);

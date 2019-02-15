@@ -2,6 +2,26 @@ Voxelman by fengxiaorui
 
 Try to modify it to fit the lastest Entities package
 
+Error Fixed Log
+---------------------------------------------
+#### Entities package import error: Assembly has reference to non-existent assembly 'Unity.PerformanceTesting'
+Manually add it to the manifest.json::"com.unity.test-framework.performance": "0.1.49-preview"
+
+#### error CS0234: The type or namespace name 'Rendering' does not exist in the namespace 'Unity'
+Add 'Hybird Renderer package' in the Unity Package Manager, it will automatically generate the dll files
+
+#### error CS0115: 'VoxelBufferSystem.OnCreateManager(int)': no suitable method found to override
+Just remove the input params and the error is gone
+
+#### error CS0246: The type or namespace name 'MeshInstanceRenderer' could not be found
+Replace all 'MeshInstanceRenderer' with 'RenderMesh' will fix it
+
+#### error CS0246: The type or namespace name 'TransformMatrix' could not be found
+Replace 'TransformMatrix' with 'Position' and 'Scale' component
+
+#### several interface update to lastest form
+See the git change log for detail infomations
+
 Original project by keijiro: https://github.com/keijiro/Voxelman
 ========
 

@@ -60,7 +60,10 @@ unsafe class ScannerSystem : JobComponentSystem
 
         // Output array; Not govened by parallel-for
         [NativeDisableParallelForRestriction]
-        public ComponentDataArray<TransformMatrix> Transforms;
+        public ComponentDataArray<Position> Positions;
+        //We do need to initialize the start scale for each voxel
+        [NativeDisableParallelForRestriction]
+        public ComponentDataArray<Scale> Scales;
 
         // Transform counter; Shared between jobs via the pointer
         [NativeDisableUnsafePtrRestriction] public int* pCounter;
@@ -78,17 +81,19 @@ unsafe class ScannerSystem : JobComponentSystem
             var dist = RaycastHits[index].distance;
 
             var p = from + new float3(0, 0, dist);
-            var matrix = new float4x4(
-                new float4(Scale, 0, 0, 0),
-                new float4(0, Scale, 0, 0),
-                new float4(0, 0, Scale, 0),
-                new float4(p.x, p.y, p.z, 1));
+       
+            //var matrix = new float4x4(
+            //    new float4(Scale, 0, 0, 0),
+            //    new float4(0, Scale, 0, 0),
+            //    new float4(0, 0, Scale, 0),
+            //    new float4(p.x, p.y, p.z, 1));
 
             // Increment the output counter in a thread safe way.
             var count = System.Threading.Interlocked.Increment(ref *pCounter) - 1;
 
             // Output
-            Transforms[count % Transforms.Length] = new TransformMatrix { Value = matrix };
+            Positions[count % Positions.Length] = new Position { Value = p };
+            Scales[count % Scales.Length] = new Scale { Value = Scale };
         }
     }
 
@@ -96,8 +101,11 @@ unsafe class ScannerSystem : JobComponentSystem
     JobHandle BuildJobChain(float3 origin, Scanner scanner, JobHandle deps)
     {
         // Transform output destination
-        var transforms = _voxelGroup.GetComponentDataArray<TransformMatrix>();
-        if (transforms.Length == 0) return deps;
+        //var transforms = _voxelGroup.GetComponentDataArray<TransformMatrix>();
+        var positions = _voxelGroup.GetComponentDataArray<Position>();
+        var scales = _voxelGroup.GetComponentDataArray<Scale>();
+        //Debug.Log("positions.Length:" + positions.Length + ",scales.Length:" + scales.Length);
+        if (positions.Length == 0) return deps;
 
         if (_pTransformCount == null)
         {
@@ -109,7 +117,7 @@ unsafe class ScannerSystem : JobComponentSystem
         else
         {
             // Wrap around the transform counter to avoid overlfow.
-            *_pTransformCount %= transforms.Length;
+            *_pTransformCount %= positions.Length;
         }
 
         // Total count of rays
@@ -136,7 +144,8 @@ unsafe class ScannerSystem : JobComponentSystem
             RaycastCommands = commands,
             RaycastHits = hits,
             Scale = scanner.Extent.x * 2 / scanner.Resolution.x,
-            Transforms = transforms,
+            Positions = positions,
+            Scales = scales,
             pCounter = _pTransformCount
         };
         deps = transferJob.Schedule(total, 64, deps);
@@ -144,10 +153,10 @@ unsafe class ScannerSystem : JobComponentSystem
         return deps;
     }
 
-    protected override void OnCreateManager(int capacity)
+    protected override void OnCreateManager()
     {
         _scannerGroup = GetComponentGroup(typeof(Scanner), typeof(Position));
-        _voxelGroup = GetComponentGroup(typeof(Voxel), typeof(TransformMatrix));
+        _voxelGroup = GetComponentGroup(typeof(Voxel), typeof(Position), typeof(Scale));
     }
 
     protected override void OnDestroyManager()
@@ -164,7 +173,7 @@ unsafe class ScannerSystem : JobComponentSystem
         // Build job chains for each scanner instance.
         var origins = _scannerGroup.GetComponentDataArray<Position>();
         var scanners = _scannerGroup.GetComponentDataArray<Scanner>();
-
+        inputDeps.Complete();
         for (var i = 0; i < scanners.Length; i++)
             inputDeps = BuildJobChain(origins[i].Value, scanners[i], inputDeps);
 
