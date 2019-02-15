@@ -1,4 +1,8 @@
+Voxelman
+========
 Voxelman by fengxiaorui
+
+Original project by keijiro: https://github.com/keijiro/Voxelman
 
 Try to modify it to fit the lastest Entities package
 
@@ -22,8 +26,8 @@ Replace 'TransformMatrix' with 'Position' and 'Scale' component
 #### several interface update to lastest form
 See the git change log for detail infomations
 
-Original project by keijiro: https://github.com/keijiro/Voxelman
-========
+
+---------------------------------------------
 
 ![gif](https://i.imgur.com/NxsT4AK.gif)
 ![gif](https://i.imgur.com/yrpIhfk.gif)
