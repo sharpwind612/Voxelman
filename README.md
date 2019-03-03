@@ -4,7 +4,7 @@ Voxelman by fengxiaorui
 
 Original project by keijiro: https://github.com/keijiro/Voxelman
 
-Try to modify it to fit the lastest Entities 0.0.12-preview.23
+Try to modify it to fit the lastest Entities 0.0.12-preview.24
 
 Error Fixed Log
 ---------------------------------------------
