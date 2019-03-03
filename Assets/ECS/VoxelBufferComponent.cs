@@ -11,4 +11,4 @@ struct VoxelBuffer : ISharedComponentData
     public RenderMesh RendererSettings;
 }
 
-class VoxelBufferComponent : SharedComponentDataWrapper<VoxelBuffer> {}
+class VoxelBufferComponent : SharedComponentDataProxy<VoxelBuffer> {}

@@ -11,4 +11,4 @@ struct Scanner : IComponentData
     public int2 Resolution;
 }
 
-class ScannerComponent : ComponentDataWrapper<Scanner> {}
+class ScannerComponent : ComponentDataProxy<Scanner> {}
