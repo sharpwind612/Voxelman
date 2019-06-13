@@ -10,11 +10,11 @@ using Unity.Mathematics;
 class VoxelAnimationSystem : JobComponentSystem
 {
     [Unity.Burst.BurstCompile]
-    struct VoxelAnimation : IJobProcessComponentData<Voxel, Position, Scale>
+    struct VoxelAnimation : IJobForEach<Voxel, Translation, Scale> //old:IJobProcessComponentData
     {
         public float dt;
 
-        public void Execute([ReadOnly] ref Voxel voxel, ref Position position, ref Scale scale)
+        public void Execute([ReadOnly] ref Voxel voxel, ref Translation position, ref Scale scale)
         {
             // Per-instance random number
             var hash = new XXHash(voxel.ID);
@@ -30,7 +30,7 @@ class VoxelAnimationSystem : JobComponentSystem
             _scale *= math.lerp(0.9f, 0.98f, rand1);
 
             //Build a new position and scale
-            position = new Position { Value = _pos };
+            position = new Translation { Value = _pos };
             scale = new Scale { Value = _scale };
 
             // Build a new matrix.

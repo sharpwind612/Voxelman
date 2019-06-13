@@ -11,7 +11,7 @@ class VoxelBufferSystem : ComponentSystem
 {
     // Used for enumerate buffer components
     List<VoxelBuffer> _uniques = new List<VoxelBuffer>();
-    ComponentGroup _group;
+    EntityQuery _group;
 
     // Voxel archetype used for instantiation
     EntityArchetype _voxelArchetype;
@@ -23,10 +23,10 @@ class VoxelBufferSystem : ComponentSystem
     //TODO: OnCreateManager change to 
     protected override void OnCreateManager()
     {
-        _group = GetComponentGroup(typeof(VoxelBuffer));
+        _group = GetEntityQuery(typeof(VoxelBuffer));
 
         _voxelArchetype = EntityManager.CreateArchetype(
-            typeof(Voxel), typeof(Position), typeof(Scale), typeof(RenderMesh)
+            typeof(Voxel), typeof(Translation), typeof(Scale), typeof(RenderMesh)
         );
     }
 
@@ -41,8 +41,8 @@ class VoxelBufferSystem : ComponentSystem
             // Get a copy of the entity array.
             // Don't directly use the iterator -- we're going to remove
             // the buffer components, and it will invalidate the iterator.
-            var iterator = _group.GetEntityArray();
-            var entities = new NativeArray<Entity>(iterator.Length, Allocator.Temp);
+            var iterator = _group.ToEntityArray(Allocator.TempJob);
+            var entities = new NativeArray<Entity>(iterator.Length, Allocator.TempJob);
             iterator.CopyTo(entities);
 
             // Instantiate voxels along with the buffer entities.
@@ -57,7 +57,7 @@ class VoxelBufferSystem : ComponentSystem
                 var cloneCount = _uniques[i].MaxVoxelCount - 1;
                 if (cloneCount > 0)
                 {
-                    var clones = new NativeArray<Entity>(cloneCount, Allocator.Temp);
+                    var clones = new NativeArray<Entity>(cloneCount, Allocator.TempJob);
                     EntityManager.Instantiate(voxel, clones);
                     for (var k = 0; k < cloneCount; k++)
                         EntityManager.SetComponentData(clones[k], new Voxel { ID = _counter++ });

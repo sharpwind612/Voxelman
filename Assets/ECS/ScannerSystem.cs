@@ -13,8 +13,8 @@ using UnityEngine;
 unsafe class ScannerSystem : JobComponentSystem
 {
     // Groups used for querying scanner/voxel components
-    ComponentGroup _scannerGroup;
-    ComponentGroup _voxelGroup;
+    EntityQuery _scannerGroup;
+    EntityQuery _voxelGroup;
 
     // Pointer used for sharing a counter between transfer jobs.
     // Why pointer? A: In burst, loading from/storing to static member fields
@@ -60,10 +60,10 @@ unsafe class ScannerSystem : JobComponentSystem
 
         // Output array; Not govened by parallel-for
         [NativeDisableParallelForRestriction]
-        public ComponentDataArray<Position> Positions;
+        public NativeArray<Translation> Positions;
         //We do need to initialize the start scale for each voxel
         [NativeDisableParallelForRestriction]
-        public ComponentDataArray<Scale> Scales;
+        public NativeArray<Scale> Scales;
 
         // Transform counter; Shared between jobs via the pointer
         [NativeDisableUnsafePtrRestriction] public int* pCounter;
@@ -92,7 +92,7 @@ unsafe class ScannerSystem : JobComponentSystem
             var count = System.Threading.Interlocked.Increment(ref *pCounter) - 1;
 
             // Output
-            Positions[count % Positions.Length] = new Position { Value = p };
+            Positions[count % Positions.Length] = new Translation { Value = p };
             Scales[count % Scales.Length] = new Scale { Value = Scale };
         }
     }
@@ -102,8 +102,8 @@ unsafe class ScannerSystem : JobComponentSystem
     {
         // Transform output destination
         //var transforms = _voxelGroup.GetComponentDataArray<TransformMatrix>();
-        var positions = _voxelGroup.GetComponentDataArray<Position>();
-        var scales = _voxelGroup.GetComponentDataArray<Scale>();
+        var positions = _voxelGroup.ToComponentDataArray<Translation>(Allocator.TempJob);
+        var scales = _voxelGroup.ToComponentDataArray<Scale>(Allocator.TempJob);
         //Debug.Log("positions.Length:" + positions.Length + ",scales.Length:" + scales.Length);
         if (positions.Length == 0) return deps;
 
@@ -155,8 +155,8 @@ unsafe class ScannerSystem : JobComponentSystem
 
     protected override void OnCreateManager()
     {
-        _scannerGroup = GetComponentGroup(typeof(Scanner), typeof(Position));
-        _voxelGroup = GetComponentGroup(typeof(Voxel), typeof(Position), typeof(Scale));
+        _scannerGroup = GetEntityQuery(typeof(Scanner), typeof(Translation));
+        _voxelGroup = GetEntityQuery(typeof(Voxel), typeof(Translation), typeof(Scale));
     }
 
     protected override void OnDestroyManager()
@@ -171,8 +171,8 @@ unsafe class ScannerSystem : JobComponentSystem
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
         // Build job chains for each scanner instance.
-        var origins = _scannerGroup.GetComponentDataArray<Position>();
-        var scanners = _scannerGroup.GetComponentDataArray<Scanner>();
+        var origins = _scannerGroup.ToComponentDataArray<Translation>(Allocator.TempJob);
+        var scanners = _scannerGroup.ToComponentDataArray<Scanner>(Allocator.TempJob);
         inputDeps.Complete();
         for (var i = 0; i < scanners.Length; i++)
             inputDeps = BuildJobChain(origins[i].Value, scanners[i], inputDeps);
