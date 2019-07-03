@@ -3,7 +3,7 @@ using Unity.Entities;
 using Unity.Transforms;
 using Unity.Collections;
 using Unity.Rendering;
-
+using Unity.Mathematics;
 // Voxel buffer system
 // Instantiates lots of voxels for instanced mesh renderers.
 
@@ -51,23 +51,37 @@ class VoxelBufferSystem : ComponentSystem
                 // Create the first voxel.
                 var voxel = EntityManager.CreateEntity(_voxelArchetype);
                 EntityManager.SetComponentData(voxel, new Voxel { ID = _counter++ });
+                //EntityManager.SetComponentData(voxel, new Translation { Value = new float3(10f,0f,0f)});
+                //EntityManager.SetComponentData(voxel, new Scale { Value = 1f });
                 EntityManager.SetSharedComponentData(voxel, _uniques[i].RendererSettings);
 
                 // Make clones from the first voxel.
                 var cloneCount = _uniques[i].MaxVoxelCount - 1;
+                //if (cloneCount > 0)
+                //{
+                //    var clones = new NativeArray<Entity>(cloneCount, Allocator.TempJob);
+                //    EntityManager.Instantiate(voxel, clones);
+                //    for (var k = 0; k < cloneCount; k++)
+                //        EntityManager.SetComponentData(clones[k], new Voxel { ID = _counter++ });
+                //    clones.Dispose();
+                //}
+               
                 if (cloneCount > 0)
                 {
-                    var clones = new NativeArray<Entity>(cloneCount, Allocator.TempJob);
-                    EntityManager.Instantiate(voxel, clones);
-                    for (var k = 0; k < cloneCount; k++)
-                        EntityManager.SetComponentData(clones[k], new Voxel { ID = _counter++ });
-                    clones.Dispose();
+                    var clones = new NativeArray<Entity>(cloneCount, Allocator.Temp);
+                    for (int k = 0; k < cloneCount; ++k)
+                    {
+                        clones[k] = PostUpdateCommands.Instantiate(voxel);
+                    }
+                    for (int k = 0; k < cloneCount; k++)
+                    {
+                        PostUpdateCommands.SetComponent(clones[k], new Voxel { ID = _counter++ });
+                    }
                 }
-
                 // Remove the buffer component from the entity.
                 EntityManager.RemoveComponent(entities[j], typeof(VoxelBuffer));
             }
-
+            iterator.Dispose();
             entities.Dispose();
         }
 

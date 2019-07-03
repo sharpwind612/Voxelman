@@ -9,7 +9,7 @@ using Unity.Mathematics;
 [UpdateAfter(typeof(VoxelBufferSystem))]
 class VoxelAnimationSystem : JobComponentSystem
 {
-    [Unity.Burst.BurstCompile]
+    //[Unity.Burst.BurstCompile]
     struct VoxelAnimation : IJobForEach<Voxel, Translation, Scale> //old:IJobProcessComponentData
     {
         public float dt;

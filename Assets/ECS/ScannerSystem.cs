@@ -5,7 +5,7 @@ using Unity.Jobs;
 using Unity.Transforms;
 using Unity.Mathematics;
 using UnityEngine;
-
+using Unity.Burst;
 // Scanner system
 // Moves old voxels to points where rays hit colliders.
 
@@ -16,6 +16,11 @@ unsafe class ScannerSystem : JobComponentSystem
     EntityQuery _scannerGroup;
     EntityQuery _voxelGroup;
 
+    NativeArray<Translation> m_preTranslation;
+    NativeArray<Scale> m_preScale;
+    NativeArray<Translation> m_preOrigins;
+    NativeArray<Scanner> m_preScanners;
+
     // Pointer used for sharing a counter between transfer jobs.
     // Why pointer? A: In burst, loading from/storing to static member fields
     // isn't allowed. So, we have to use a pointer to share a counter between
@@ -23,7 +28,7 @@ unsafe class ScannerSystem : JobComponentSystem
     int* _pTransformCount;
 
     // Set-up job: Set up raycast commands in parallel.
-    [Unity.Burst.BurstCompile]
+    //[Unity.Burst.BurstCompile]
     struct SetupJob : IJobParallelFor
     {
         // Output
@@ -48,7 +53,7 @@ unsafe class ScannerSystem : JobComponentSystem
     }
 
     // Transfer job: Transfers raycast results to voxels in parallel.
-    [Unity.Burst.BurstCompile]
+    //[Unity.Burst.BurstCompile]
     struct TransferJob : IJobParallelFor
     {
         // Input arrays; Will be automatically deallocated.
@@ -94,6 +99,23 @@ unsafe class ScannerSystem : JobComponentSystem
             // Output
             Positions[count % Positions.Length] = new Translation { Value = p };
             Scales[count % Scales.Length] = new Scale { Value = Scale };
+        }
+    }
+
+
+    [BurstCompile]
+    [RequireComponentTag(typeof(Voxel))]
+    struct SetTranslationAndScale : IJobForEachWithEntity<Translation,Scale>
+    {
+        [ReadOnly] public NativeArray<Translation> targetTranslations;
+        [ReadOnly] public NativeArray<Scale> targetScales;
+
+        public void Execute(Entity entity, int index, ref Translation translation, ref Scale scale)
+        {
+            var targetPosition = targetTranslations[index];
+            var targetScale = targetScales[index];
+            translation = targetPosition;
+            scale = targetScale;
         }
     }
 
@@ -143,12 +165,28 @@ unsafe class ScannerSystem : JobComponentSystem
         var transferJob = new TransferJob {
             RaycastCommands = commands,
             RaycastHits = hits,
-            Scale = scanner.Extent.x * 2 / scanner.Resolution.x,
+            Scale = 1f,//scanner.Extent.x * 2 / scanner.Resolution.x,
             Positions = positions,
             Scales = scales,
             pCounter = _pTransformCount
         };
         deps = transferJob.Schedule(total, 64, deps);
+
+        // 4: SetTranslationAndScale jobs
+        var setJob = new SetTranslationAndScale
+        {
+            targetTranslations = positions,
+            targetScales = scales
+        };
+        deps = setJob.Schedule(_voxelGroup,deps);
+
+        if (m_preTranslation.Length != 0)
+        {
+            m_preTranslation.Dispose();
+            m_preScale.Dispose();
+        }
+        m_preTranslation = positions;
+        m_preScale = scales;
 
         return deps;
     }
@@ -177,6 +215,25 @@ unsafe class ScannerSystem : JobComponentSystem
         for (var i = 0; i < scanners.Length; i++)
             inputDeps = BuildJobChain(origins[i].Value, scanners[i], inputDeps);
 
+        if (m_preOrigins.Length != 0)
+        {
+            m_preOrigins.Dispose();
+            m_preScanners.Dispose();
+        }
+        m_preOrigins = origins;
+        m_preScanners = scanners;
+
         return inputDeps;
+    }
+
+    protected override void OnStopRunning()
+    {
+        if (m_preTranslation.Length != 0)
+        {
+            m_preTranslation.Dispose();
+            m_preScale.Dispose();
+            m_preOrigins.Dispose();
+            m_preScanners.Dispose();
+        }
     }
 }
