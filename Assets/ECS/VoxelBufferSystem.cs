@@ -26,7 +26,7 @@ class VoxelBufferSystem : ComponentSystem
         _group = GetEntityQuery(typeof(VoxelBuffer));
 
         _voxelArchetype = EntityManager.CreateArchetype(
-            typeof(Voxel), typeof(Translation), typeof(Scale), typeof(RenderMesh)
+            typeof(Voxel), typeof(Translation), typeof(LocalToWorld), typeof(Scale), typeof(RenderMesh)
         );
     }
 

@@ -28,7 +28,7 @@ unsafe class ScannerSystem : JobComponentSystem
     int* _pTransformCount;
 
     // Set-up job: Set up raycast commands in parallel.
-    //[Unity.Burst.BurstCompile]
+    [BurstCompile]
     struct SetupJob : IJobParallelFor
     {
         // Output
@@ -53,7 +53,7 @@ unsafe class ScannerSystem : JobComponentSystem
     }
 
     // Transfer job: Transfers raycast results to voxels in parallel.
-    //[Unity.Burst.BurstCompile]
+    [BurstCompile]
     struct TransferJob : IJobParallelFor
     {
         // Input arrays; Will be automatically deallocated.
@@ -129,6 +129,14 @@ unsafe class ScannerSystem : JobComponentSystem
         //Debug.Log("positions.Length:" + positions.Length + ",scales.Length:" + scales.Length);
         if (positions.Length == 0) return deps;
 
+        if (m_preTranslation.Length != 0)
+        {
+            m_preTranslation.Dispose();
+            m_preScale.Dispose();
+        }
+        m_preTranslation = positions;
+        m_preScale = scales;
+
         if (_pTransformCount == null)
         {
             // Initialize the transform counter.
@@ -165,7 +173,7 @@ unsafe class ScannerSystem : JobComponentSystem
         var transferJob = new TransferJob {
             RaycastCommands = commands,
             RaycastHits = hits,
-            Scale = 1f,//scanner.Extent.x * 2 / scanner.Resolution.x,
+            Scale = scanner.Extent.x * 2 / scanner.Resolution.x,
             Positions = positions,
             Scales = scales,
             pCounter = _pTransformCount
@@ -179,14 +187,6 @@ unsafe class ScannerSystem : JobComponentSystem
             targetScales = scales
         };
         deps = setJob.Schedule(_voxelGroup,deps);
-
-        if (m_preTranslation.Length != 0)
-        {
-            m_preTranslation.Dispose();
-            m_preScale.Dispose();
-        }
-        m_preTranslation = positions;
-        m_preScale = scales;
 
         return deps;
     }
